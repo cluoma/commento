@@ -51,14 +51,14 @@ func footerInit() error {
 	return nil
 }
 
-func fileLoad(f string) ([]byte, error) {
+func fileLoad(f string, comp bool) ([]byte, error) {
 	b, err := fileDetemplate(f)
 	if err != nil {
 		logger.Errorf("cannot load file %s: %v", f, err)
 		return []byte{}, err
 	}
 
-	if !compress {
+	if !comp {
 		return b, nil
 	}
 
@@ -69,6 +69,7 @@ func staticRouterInit(router *mux.Router) error {
 	var err error
 
 	subdir := pathStrip(os.Getenv("ORIGIN"))
+	compress := (os.Getenv("GZIP_STATIC") == "true")
 
 	if err = footerInit(); err != nil {
 		logger.Errorf("error initialising static router: %v", err)
@@ -84,7 +85,7 @@ func staticRouterInit(router *mux.Router) error {
 
 		for _, file := range files {
 			f := dir + "/" + file.Name()
-			asset[subdir+f], err = fileLoad(os.Getenv("STATIC") + f)
+			asset[subdir+f], err = fileLoad(os.Getenv("STATIC") + f, compress)
 			if err != nil {
 				logger.Errorf("cannot detemplate %s%s: %v", os.Getenv("STATIC"), f, err)
 				return err
@@ -105,7 +106,7 @@ func staticRouterInit(router *mux.Router) error {
 
 	for _, page := range pages {
 		f := page + ".html"
-		asset[subdir+page], err = fileLoad(os.Getenv("STATIC") + f)
+		asset[subdir+page], err = fileLoad(os.Getenv("STATIC") + f, compress)
 		if err != nil {
 			logger.Errorf("cannot detemplate %s%s: %v", os.Getenv("STATIC"), f, err)
 			return err

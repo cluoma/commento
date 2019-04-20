@@ -55,7 +55,6 @@
   var ID_CONTENTS = "commento-comment-contents-";
   var ID_NAME = "commento-comment-name-";
   var ID_SUBMIT_BUTTON = "commento-submit-button-";
-  var ID_FOOTER = "commento-footer";
 
 
   var origin = "[[[.Origin]]]";
@@ -314,32 +313,6 @@
     attrSet(link, "onload", onload);
 
     append(head, link);
-  }
-
-
-  function footerLoad() {
-    var footer = create("div");
-    var aContainer = create("div");
-    var a = create("a");
-    var text = create("span");
-
-    footer.id = ID_FOOTER;
-
-    classAdd(footer, "footer");
-    classAdd(aContainer, "logo-container");
-    classAdd(a, "logo");
-    classAdd(text, "logo-text");
-
-    attrSet(a, "href", "https://commento.io");
-    attrSet(a, "target", "_blank");
-
-    text.innerText = "Commento";
-
-    append(a, text);
-    append(aContainer, a);
-    append(footer, aContainer);
-
-    return footer;
   }
 
 
@@ -1691,7 +1664,6 @@
 
     mainAreaCreate();
 
-    var footer = footerLoad();
     cssLoad(cdn + "/css/commento.css", "window.commento.loadCssOverride()");
 
     selfGet(function() {
@@ -1699,7 +1671,6 @@
         modToolsCreate();
         rootCreate(function() {
           commentsRender();
-          append(root, footer);
           attrSet(root, "style", "");
           nameWidthFix();
           loadHash();
