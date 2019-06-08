@@ -12,22 +12,26 @@ func commentList(commenterHex string, domain string, path string, includeUnappro
 	}
 
 	statement := `
-    SELECT commentHex, commenterHex, markdown, html, parentHex, score, state, creationDate
+		SELECT
+			commentHex,
+			commenterHex,
+			markdown,
+			html,
+			parentHex,
+			score,
+			state,
+			creationDate
 		FROM comments
 		WHERE
-      comments.domain = $1 AND
-      comments.path = $2
-  `
+			comments.domain = $1 AND
+			comments.path = $2
+	`
 
 	if !includeUnapproved {
 		if commenterHex == "anonymous" {
-			statement += `
-        AND state = 'approved'
-      `
+			statement += `AND state = 'approved'`
 		} else {
-			statement += `
-        AND (state = 'approved' OR commenterHex = $3)
-      `
+			statement += `AND (state = 'approved' OR commenterHex = $3)`
 		}
 	}
 
@@ -54,22 +58,34 @@ func commentList(commenterHex string, domain string, path string, includeUnappro
 	comments := []comment{}
 	for rows.Next() {
 		c := comment{}
-		if err = rows.Scan(&c.CommentHex, &c.CommenterHex, &c.Markdown, &c.Html, &c.ParentHex, &c.Score, &c.State, &c.CreationDate); err != nil {
+		if err = rows.Scan(
+			&c.CommentHex,
+			&c.CommenterHex,
+			&c.Markdown,
+			&c.Html,
+			&c.ParentHex,
+			&c.Score,
+			&c.State,
+			&c.CreationDate); err != nil {
 			return nil, nil, errorInternal
 		}
 
 		if commenterHex != "anonymous" {
 			statement = `
-        SELECT direction
-        FROM votes
-        WHERE commentHex=$1 AND commenterHex=$2;
-      `
+				SELECT direction
+				FROM votes
+				WHERE commentHex=$1 AND commenterHex=$2;
+			`
 			row := db.QueryRow(statement, c.CommentHex, commenterHex)
 
 			if err = row.Scan(&c.Direction); err != nil {
 				// TODO: is the only error here that there is no such entry?
 				c.Direction = 0
 			}
+		}
+
+		if commenterHex != c.CommenterHex {
+			c.Markdown = ""
 		}
 
 		if !includeUnapproved {
@@ -119,24 +135,31 @@ func commentListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commenterHex := "anonymous"
-	c, err := commenterGetByCommenterToken(*x.CommenterToken)
-	if err != nil {
-		if err == errorNoSuchToken {
-			commenterHex = "anonymous"
-		} else {
-			bodyMarshal(w, response{"success": false, "message": err.Error()})
-			return
-		}
-	} else {
-		commenterHex = c.CommenterHex
-	}
-
 	isModerator := false
 	modList := map[string]bool{}
-	for _, mod := range d.Moderators {
-		modList[mod.Email] = true
-		if mod.Email == c.Email {
-			isModerator = true
+
+	if *x.CommenterToken != "anonymous" {
+		c, err := commenterGetByCommenterToken(*x.CommenterToken)
+		if err != nil {
+			if err == errorNoSuchToken {
+				commenterHex = "anonymous"
+			} else {
+				bodyMarshal(w, response{"success": false, "message": err.Error()})
+				return
+			}
+		} else {
+			commenterHex = c.CommenterHex
+		}
+
+		for _, mod := range d.Moderators {
+			modList[mod.Email] = true
+			if mod.Email == c.Email {
+				isModerator = true
+			}
+		}
+	} else {
+		for _, mod := range d.Moderators {
+			modList[mod.Email] = true
 		}
 	}
 
@@ -173,6 +196,7 @@ func commentListHandler(w http.ResponseWriter, r *http.Request) {
 			"twitter":  twitterConfigured && d.TwitterProvider,
 			"github":   githubConfigured && d.GithubProvider,
 			"gitlab":   gitlabConfigured && d.GitlabProvider,
+			"sso":      d.SsoProvider,
 		},
 	})
 }

@@ -2,6 +2,7 @@ package main
 
 func main() {
 	exitIfError(loggerCreate())
+	exitIfError(versionPrint())
 	exitIfError(configParse())
 	exitIfError(dbConnect(5))
 	exitIfError(migrate())
@@ -15,6 +16,7 @@ func main() {
 	exitIfError(versionCheckStart())
 	exitIfError(domainExportCleanupBegin())
 	exitIfError(viewsCleanupBegin())
+	exitIfError(ssoTokenCleanupBegin())
 
 	exitIfError(routesServe())
 }

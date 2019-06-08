@@ -45,3 +45,5 @@ var errorThreadLocked = errors.New("This thread is locked. You cannot add new co
 var errorDatabaseMigration = errors.New("Encountered error applying database migration.")
 var errorNoSuchUnsubscribeSecretHex = errors.New("Invalid unsubscribe link.")
 var errorEmptyPaths = errors.New("Empty paths field.")
+var errorInvalidDomain = errors.New("Invalid domain name. Do not include the URL path after the forward slash.")
+var errorInvalidEntity = errors.New("That entity does not exist.")

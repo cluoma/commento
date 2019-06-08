@@ -22,11 +22,14 @@
   var ID_LOGIN_BOX_NAME_INPUT = "commento-login-box-name-input";
   var ID_LOGIN_BOX_WEBSITE_INPUT = "commento-login-box-website-input";
   var ID_LOGIN_BOX_EMAIL_BUTTON = "commento-login-box-email-button";
+  var ID_LOGIN_BOX_FORGOT_LINK_CONTAINER = "commento-login-box-forgot-link-container";
   var ID_LOGIN_BOX_LOGIN_LINK_CONTAINER = "commento-login-box-login-link-container";
-  var ID_LOGIN_BOX_LOGIN_LINK = "commento-login-box-login-link";
-  var ID_LOGIN_BOX_HR = "commento-login-box-hr";
+  var ID_LOGIN_BOX_SSO_PRETEXT = "commento-login-box-sso-pretext";
+  var ID_LOGIN_BOX_SSO_BUTTON_CONTAINER = "commento-login-box-sso-buttton-container";
+  var ID_LOGIN_BOX_HR1 = "commento-login-box-hr1";
   var ID_LOGIN_BOX_OAUTH_PRETEXT = "commento-login-box-oauth-pretext";
   var ID_LOGIN_BOX_OAUTH_BUTTONS_CONTAINER = "commento-login-box-oauth-buttons-container";
+  var ID_LOGIN_BOX_HR2 = "commento-login-box-hr2";
   var ID_MOD_TOOLS = "commento-mod-tools";
   var ID_MOD_TOOLS_LOCK_BUTTON = "commento-mod-tools-lock-button";
   var ID_ERROR = "commento-error";
@@ -55,15 +58,23 @@
   var ID_CONTENTS = "commento-comment-contents-";
   var ID_NAME = "commento-comment-name-";
   var ID_SUBMIT_BUTTON = "commento-submit-button-";
+<<<<<<< HEAD
+=======
+  var ID_MARKDOWN_BUTTON = "commento-markdown-button-";
+  var ID_MARKDOWN_HELP = "commento-markdown-help-";
+  var ID_FOOTER = "commento-footer";
+>>>>>>> f37e26bfc291dbeceb2aabc3b20e83c01e31fcd8
 
 
   var origin = "[[[.Origin]]]";
   var cdn = "[[[.CdnPrefix]]]";
   var root = null;
   var cssOverride;
+  var noFonts;
   var autoInit;
   var isAuthenticated = false;
   var comments = [];
+  var commentsMap = {};
   var commenters = {};
   var requireIdentification = true;
   var isModerator = false;
@@ -72,6 +83,7 @@
   var isLocked = false;
   var stickyCommentHex = "none";
   var shownReply = {};
+  var shownEdit = {};
   var configuredOauths = {};
   var popupBoxType = "login";
   var oauthButtonsShown = false;
@@ -227,6 +239,9 @@
 
   global.logout = function() {
     cookieSet("commentoCommenterToken", "anonymous");
+    isAuthenticated = false;
+    isModerator = false;
+    selfHex = undefined;
     refreshAll();
   }
 
@@ -236,7 +251,12 @@
 
     var loggedContainer = create("div");
     var loggedInAs = create("div");
-    var name = create("a");
+    var name;
+    if (commenter.link !== "undefined") {
+      name = create("a");
+    } else {
+      name = create("div");
+    }
     var avatar;
     var logout = create("div");
     var color = colorGet(commenter.commenterHex + "-" + commenter.name);
@@ -254,7 +274,9 @@
     onclick(logout, global.logout);
 
     attrSet(loggedContainer, "style", "display: none");
-    attrSet(name, "href", commenter.link);
+    if (commenter.link !== "undefined") {
+      attrSet(name, "href", commenter.link);
+    }
     if (commenter.photo === "undefined") {
       avatar = create("div");
       avatar.style["background"] = color;
@@ -383,7 +405,83 @@
   };
 
 
-  function textareaCreate(id) {
+  function markdownHelpShow(id) {
+    var textareaSuperContainer = $(ID_SUPER_CONTAINER + id);
+    var markdownButton = $(ID_MARKDOWN_BUTTON + id);
+    var markdownHelp = create("table");
+    var italicsContainer = create("tr");
+    var italicsLeft = create("td");
+    var italicsRight = create("td");
+    var boldContainer = create("tr");
+    var boldLeft = create("td");
+    var boldRight = create("td");
+    var codeContainer = create("tr");
+    var codeLeft = create("td");
+    var codeRight = create("td");
+    var strikethroughContainer = create("tr");
+    var strikethroughLeft = create("td");
+    var strikethroughRight = create("td");
+    var hyperlinkContainer = create("tr");
+    var hyperlinkLeft = create("td");
+    var hyperlinkRight = create("td");
+    var quoteContainer = create("tr");
+    var quoteLeft = create("td");
+    var quoteRight = create("td");
+
+    markdownHelp.id = ID_MARKDOWN_HELP + id;
+
+    classAdd(markdownHelp, "markdown-help");
+
+    boldLeft.innerHTML = "<b>bold</b>";
+    boldRight.innerHTML = "surround text with <pre>**two asterisks**</pre>";
+    italicsLeft.innerHTML = "<i>italics</i>";
+    italicsRight.innerHTML = "surround text with <pre>*asterisks*</pre>";
+    codeLeft.innerHTML = "<pre>code</pre>";
+    codeRight.innerHTML = "surround text with <pre>`backticks`</pre>";
+    strikethroughLeft.innerHTML = "<strike>strikethrough</strike>";
+    strikethroughRight.innerHTML = "surround text with <pre>~~two tilde characters~~</pre>";
+    hyperlinkLeft.innerHTML = "<a href=\"https://example.com\">hyperlink</a>";
+    hyperlinkRight.innerHTML = "<pre>[hyperlink](https://example.com)</pre> or just a bare URL";
+    quoteLeft.innerHTML = "<blockquote>quote</blockquote>";
+    quoteRight.innerHTML = "prefix with <pre>&gt;</pre>";
+
+    markdownButton = removeAllEventListeners(markdownButton);
+    onclick(markdownButton, markdownHelpHide, id);
+
+    append(italicsContainer, italicsLeft);
+    append(italicsContainer, italicsRight);
+    append(markdownHelp, italicsContainer);
+    append(boldContainer, boldLeft);
+    append(boldContainer, boldRight);
+    append(markdownHelp, boldContainer);
+    append(hyperlinkContainer, hyperlinkLeft);
+    append(hyperlinkContainer, hyperlinkRight);
+    append(markdownHelp, hyperlinkContainer);
+    append(codeContainer, codeLeft);
+    append(codeContainer, codeRight);
+    append(markdownHelp, codeContainer);
+    append(strikethroughContainer, strikethroughLeft);
+    append(strikethroughContainer, strikethroughRight);
+    append(markdownHelp, strikethroughContainer);
+    append(quoteContainer, quoteLeft);
+    append(quoteContainer, quoteRight);
+    append(markdownHelp, quoteContainer);
+    append(textareaSuperContainer, markdownHelp);
+  }
+
+
+  function markdownHelpHide(id) {
+    var markdownButton = $(ID_MARKDOWN_BUTTON + id);
+    var markdownHelp = $(ID_MARKDOWN_HELP + id);
+
+    markdownButton = removeAllEventListeners(markdownButton);
+    onclick(markdownButton, markdownHelpShow, id);
+
+    remove(markdownHelp);
+  }
+
+
+  function textareaCreate(id, edit) {
     var textareaSuperContainer = create("div");
     var textareaContainer = create("div");
     var textarea = create("textarea");
@@ -391,18 +489,21 @@
     var anonymousCheckbox = create("input");
     var anonymousCheckboxLabel = create("label");
     var submitButton = create("button");
+    var markdownButton = create("a");
 
     textareaSuperContainer.id = ID_SUPER_CONTAINER + id;
     textareaContainer.id = ID_TEXTAREA_CONTAINER + id;
     textarea.id = ID_TEXTAREA + id;
     anonymousCheckbox.id = ID_ANONYMOUS_CHECKBOX + id;
     submitButton.id = ID_SUBMIT_BUTTON + id;
+    markdownButton.id = ID_MARKDOWN_BUTTON + id;
 
     classAdd(textareaContainer, "textarea-container");
     classAdd(anonymousCheckboxContainer, "round-check");
     classAdd(anonymousCheckboxContainer, "anonymous-checkbox-container");
     classAdd(submitButton, "button");
     classAdd(submitButton, "submit-button");
+    classAdd(markdownButton, "markdown-button");
     classAdd(textareaSuperContainer, "button-margin");
 
     attrSet(textarea, "placeholder", "Add a comment");
@@ -410,19 +511,30 @@
     attrSet(anonymousCheckboxLabel, "for", ID_ANONYMOUS_CHECKBOX + id);
 
     anonymousCheckboxLabel.innerText = "Comment anonymously";
-    submitButton.innerText = "Add Comment";
+    if (edit === true) {
+      submitButton.innerText = "Save Changes";
+    } else {
+      submitButton.innerText = "Add Comment";
+    }
+    markdownButton.innerHTML = "<b>M &#8595;</b> &nbsp; Markdown";
 
     textarea.oninput = autoExpander(textarea);
-    onclick(submitButton, submitAccountDecide, id);
+    if (edit === true) {
+      onclick(submitButton, commentEdit, id);
+    } else {
+      onclick(submitButton, submitAccountDecide, id);
+    }
+    onclick(markdownButton, markdownHelpShow, id);
 
     append(textareaContainer, textarea);
     append(textareaSuperContainer, textareaContainer);
     append(anonymousCheckboxContainer, anonymousCheckbox);
     append(anonymousCheckboxContainer, anonymousCheckboxLabel);
     append(textareaSuperContainer, submitButton);
-    if (!requireIdentification) {
+    if (!requireIdentification && edit !== true) {
       append(textareaSuperContainer, anonymousCheckboxContainer);
     }
+    append(textareaSuperContainer, markdownButton);
 
     return textareaSuperContainer;
   }
@@ -789,6 +901,7 @@
         }
       }
 
+      onclick(edit, global.editShow, comment.commentHex);
       onclick(collapse, global.commentCollapse, comment.commentHex);
       onclick(approve, global.commentApprove, comment.commentHex);
       onclick(remove, global.commentDelete, comment.commentHex);
@@ -811,24 +924,29 @@
 
       append(options, collapse);
 
-      // append(options, edit); // uncomment when implemented
       append(options, downvote);
       append(options, upvote);
 
-      append(options, reply);
-
-      if (isModerator) {
-        if (parentHex === "root") {
-          append(options, sticky);
-        }
-        append(options, remove);
-        if (comment.state !== "approved") {
-          append(options, approve);
-        }
+      if (comment.commenterHex === selfHex) {
+        append(options, edit);
       } else {
-        if (stickyCommentHex === comment.commentHex) {
-          append(options, sticky);
-        }
+        append(options, reply);
+      }
+
+      if (isModerator && parentHex === "root") {
+        append(options, sticky);
+      }
+
+      if (isModerator || comment.commenterHex === selfHex) {
+        append(options, remove);
+      }
+
+      if (isModerator && comment.state !== "approved") {
+        append(options, approve);
+      }
+      
+      if (!isModerator && stickyCommentHex === comment.commentHex) {
+        append(options, sticky);
       }
 
       attrSet(options, "style", "width: " + ((options.childNodes.length+1)*32) + "px;");
@@ -985,6 +1103,106 @@
   }
 
 
+  function commentEdit(id) {
+    var textarea = $(ID_TEXTAREA + id);
+
+    var markdown = textarea.value;
+
+    if (markdown === "") {
+      classAdd(textarea, "red-border");
+      return;
+    } else {
+      classRemove(textarea, "red-border");
+    }
+
+    var json = {
+      "commenterToken": commenterTokenGet(),
+      "commentHex": id,
+      "markdown": markdown,
+    };
+
+    post(origin + "/api/comment/edit", json, function(resp) {
+      if (!resp.success) {
+        errorShow(resp.message);
+        return;
+      } else {
+        errorHide();
+      }
+
+      commentsMap[id].markdown = markdown;
+      commentsMap[id].html = resp.html;
+
+      var editButton = $(ID_EDIT + id);
+      var textarea = $(ID_SUPER_CONTAINER + id);
+
+      textarea.innerHTML = commentsMap[id].html;
+      textarea.id = ID_TEXT + id;
+      delete shownEdit[id];
+
+      classAdd(editButton, "option-edit");
+      classRemove(editButton, "option-cancel");
+
+      editButton.title = "Edit comment";
+
+      editButton = removeAllEventListeners(editButton);
+      onclick(editButton, global.editShow, id)
+
+      var message = "";
+      if (resp.state === "unapproved") {
+        message = "Your comment is under moderation.";
+      } else if (resp.state === "flagged") {
+        message = "Your comment was flagged as spam and is under moderation.";
+      }
+
+      if (message !== "") {
+        prepend($(ID_SUPER_CONTAINER + id), messageCreate(message));
+      }
+    });
+  }
+
+
+  global.editShow = function(id) {
+    if (id in shownEdit && shownEdit[id]) {
+      return;
+    }
+
+    var text = $(ID_TEXT + id);
+    shownEdit[id] = true;
+    text.replaceWith(textareaCreate(id, true));
+
+    var textarea = $(ID_TEXTAREA + id);
+    textarea.innerText = commentsMap[id].markdown;
+
+    var editButton = $(ID_EDIT + id);
+
+    classRemove(editButton, "option-edit");
+    classAdd(editButton, "option-cancel");
+
+    editButton.title = "Cancel edit";
+
+    editButton = removeAllEventListeners(editButton);
+    onclick(editButton, global.editCollapse, id);
+  };
+
+
+  global.editCollapse = function(id) {
+    var editButton = $(ID_EDIT + id);
+    var textarea = $(ID_SUPER_CONTAINER + id);
+
+    textarea.innerHTML = commentsMap[id].html;
+    textarea.id = ID_TEXT + id;
+    delete shownEdit[id];
+
+    classAdd(editButton, "option-edit");
+    classRemove(editButton, "option-cancel");
+
+    editButton.title = "Edit comment";
+
+    editButton = removeAllEventListeners(editButton);
+    onclick(editButton, global.editShow, id)
+  }
+
+
   global.replyShow = function(id) {
     if (id in shownReply && shownReply[id]) {
       return;
@@ -1011,7 +1229,7 @@
     var el = $(ID_SUPER_CONTAINER + id);
 
     el.remove();
-    shownReply[id] = false;
+    delete shownReply[id];
 
     classAdd(replyButton, "option-reply");
     classRemove(replyButton, "option-cancel");
@@ -1074,6 +1292,10 @@
       comment.creationDate = new Date(comment.creationDate);
 
       parentMap[parentHex].push(comment);
+      commentsMap[comment.commentHex] = {
+        "html": comment.html,
+        "markdown": comment.markdown,
+      };
     });
 
     var cards = commentsRecurse(parentMap, "root");
@@ -1153,7 +1375,10 @@
               attrSet(loggedContainer, "style", "");
             }
 
-            remove($(ID_LOGIN));
+            if (commenterTokenGet() !== "anonymous") {
+              remove($(ID_LOGIN));
+            }
+
             if (id !== null) {
               global.commentNew(id, resp.commenterToken, function() {
                 global.loginBoxClose();
@@ -1187,15 +1412,21 @@
   global.popupRender = function(id) {
     var loginBoxContainer = $(ID_LOGIN_BOX_CONTAINER);
     var loginBox = create("div");
+    var ssoSubtitle = create("div");
+    var ssoButtonContainer = create("div");
+    var ssoButton = create("div");
+    var hr1 = create("hr");
     var oauthSubtitle = create("div");
     var oauthButtonsContainer = create("div");
     var oauthButtons = create("div");
-    var hr = create("hr");
+    var hr2 = create("hr");
     var emailSubtitle = create("div");
     var emailContainer = create("div");
     var email = create("div");
     var emailInput = create("input");
     var emailButton = create("button");
+    var forgotLinkContainer = create("div");
+    var forgotLink = create("a");
     var loginLinkContainer = create("div");
     var loginLink = create("a");
     var close = create("div");
@@ -1204,11 +1435,14 @@
     emailSubtitle.id = ID_LOGIN_BOX_EMAIL_SUBTITLE;
     emailInput.id = ID_LOGIN_BOX_EMAIL_INPUT;
     emailButton.id = ID_LOGIN_BOX_EMAIL_BUTTON;
-    loginLink.id = ID_LOGIN_BOX_LOGIN_LINK;
+    forgotLinkContainer.id = ID_LOGIN_BOX_FORGOT_LINK_CONTAINER
     loginLinkContainer.id = ID_LOGIN_BOX_LOGIN_LINK_CONTAINER;
-    hr.id = ID_LOGIN_BOX_HR;
+    ssoButtonContainer.id = ID_LOGIN_BOX_SSO_BUTTON_CONTAINER;
+    ssoSubtitle.id = ID_LOGIN_BOX_SSO_PRETEXT;
+    hr1.id = ID_LOGIN_BOX_HR1;
     oauthSubtitle.id = ID_LOGIN_BOX_OAUTH_PRETEXT;
     oauthButtonsContainer.id = ID_LOGIN_BOX_OAUTH_BUTTONS_CONTAINER;
+    hr2.id = ID_LOGIN_BOX_HR2;
 
     classAdd(loginBoxContainer, "login-box-container");
     classAdd(loginBox, "login-box");
@@ -1217,21 +1451,29 @@
     classAdd(email, "email");
     classAdd(emailInput, "input");
     classAdd(emailButton, "email-button");
+    classAdd(forgotLinkContainer, "forgot-link-container");
+    classAdd(forgotLink, "forgot-link");
     classAdd(loginLinkContainer, "login-link-container");
     classAdd(loginLink, "login-link");
+    classAdd(ssoSubtitle, "login-box-subtitle");
+    classAdd(ssoButtonContainer, "oauth-buttons-container");
+    classAdd(ssoButton, "oauth-buttons");
     classAdd(oauthSubtitle, "login-box-subtitle");
     classAdd(oauthButtonsContainer, "oauth-buttons-container");
     classAdd(oauthButtons, "oauth-buttons");
     classAdd(close, "login-box-close");
     classAdd(root, "root-min-height");
 
+    forgotLink.innerText = "Forgot your password?";
     loginLink.innerText = "Don't have an account? Sign up.";
     emailSubtitle.innerText = "Login with your email address";
     emailButton.innerText = "Continue";
     oauthSubtitle.innerText = "Proceed with social login";
+    ssoSubtitle.innerText = "Proceed with " + parent.location.host + " authentication";
 
     onclick(emailButton, global.passwordAsk, id);
-    onclick(loginLink, global.popupSwitch);
+    onclick(forgotLink, global.forgotPassword, id);
+    onclick(loginLink, global.popupSwitch, id);
     onclick(close, global.loginBoxClose);
 
     attrSet(loginBoxContainer, "style", "display: none; opacity: 0;");
@@ -1242,12 +1484,11 @@
     var numOauthConfigured = 0;
     var oauthProviders = ["google", "twitter", "github", "gitlab"];
     oauthProviders.forEach(function(provider) {
-      console.log(provider);
       if (configuredOauths[provider]) {
         var button = create("button");
 
         classAdd(button, "button");
-        classAdd(button,  provider+ "-button");
+        classAdd(button, provider + "-button");
 
         button.innerText = provider;
 
@@ -1257,6 +1498,26 @@
         numOauthConfigured++;
       }
     });
+
+    if (configuredOauths["sso"]) {
+      var button = create("button");
+
+      classAdd(button, "button");
+      classAdd(button, "sso-button");
+
+      button.innerText = "Single Sign-On";
+
+      onclick(button, global.commentoAuth, {"provider": "sso", "id": id});
+
+      append(ssoButton, button);
+      append(ssoButtonContainer, ssoButton);
+      append(loginBox, ssoSubtitle);
+      append(loginBox, ssoButtonContainer);
+
+      if (numOauthConfigured > 0 || configuredOauths["commento"]) {
+        append(loginBox, hr1);
+      }
+    }
 
     if (numOauthConfigured > 0) {
       append(loginBox, oauthSubtitle);
@@ -1271,15 +1532,18 @@
     append(email, emailButton);
     append(emailContainer, email);
 
+    append(forgotLinkContainer, forgotLink);
+
     append(loginLinkContainer, loginLink);
 
     if (numOauthConfigured > 0 && configuredOauths["commento"]) {
-      append(loginBox, hr);
+      append(loginBox, hr2);
     }
 
     if (configuredOauths["commento"]) {
       append(loginBox, emailSubtitle);
       append(loginBox, emailContainer);
+      append(loginBox, forgotLinkContainer);
       append(loginBox, loginLinkContainer);
     }
 
@@ -1291,19 +1555,37 @@
   }
 
 
-  global.popupSwitch = function() {
-    var emailSubtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
-    var loginLink = $(ID_LOGIN_BOX_LOGIN_LINK);
+  global.forgotPassword = function() {
+    var popup = window.open("", "_blank");
+    popup.location = origin + "/forgot?commenter=true";
+    global.loginBoxClose();
+  }
 
-    if (popupBoxType === "login") {
-      loginLink.innerText = "Already have an account? Log in.";
-      emailSubtitle.innerText = "Create an account";
-      popupBoxType = "signup";
-    } else {
-      loginLink.innerText = "Don't have an account? Sign up.";
-      emailSubtitle.innerText = "Login with your email address";
-      popupBoxType = "login";
+
+  global.popupSwitch = function(id) {
+    var emailSubtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
+
+    if (oauthButtonsShown) {
+      remove($(ID_LOGIN_BOX_OAUTH_BUTTONS_CONTAINER));
+      remove($(ID_LOGIN_BOX_OAUTH_PRETEXT));
+      remove($(ID_LOGIN_BOX_HR1));
+      remove($(ID_LOGIN_BOX_HR2));
     }
+
+    if (configuredOauths["sso"]) {
+      remove($(ID_LOGIN_BOX_SSO_BUTTON_CONTAINER));
+      remove($(ID_LOGIN_BOX_SSO_PRETEXT));
+      remove($(ID_LOGIN_BOX_HR1));
+      remove($(ID_LOGIN_BOX_HR2));
+    }
+
+    remove($(ID_LOGIN_BOX_LOGIN_LINK_CONTAINER));
+    remove($(ID_LOGIN_BOX_FORGOT_LINK_CONTAINER));
+
+    emailSubtitle.innerText = "Create an account";
+    popupBoxType = "signup";
+    global.passwordAsk(id);
+    $(ID_LOGIN_BOX_EMAIL_INPUT).focus();
   }
 
 
@@ -1377,19 +1659,16 @@
   global.passwordAsk = function(id) {
     var loginBox = $(ID_LOGIN_BOX);
     var subtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
-    var emailButton = $(ID_LOGIN_BOX_EMAIL_BUTTON);
-    var loginLinkContainer = $(ID_LOGIN_BOX_LOGIN_LINK_CONTAINER);
-    var hr = $(ID_LOGIN_BOX_HR);
-    var oauthButtonsContainer = $(ID_LOGIN_BOX_OAUTH_BUTTONS_CONTAINER);
-    var oauthPretext = $(ID_LOGIN_BOX_OAUTH_PRETEXT);
     
-    remove(emailButton);
-    remove(loginLinkContainer);
+    remove($(ID_LOGIN_BOX_EMAIL_BUTTON));
+    remove($(ID_LOGIN_BOX_LOGIN_LINK_CONTAINER));
+    remove($(ID_LOGIN_BOX_FORGOT_LINK_CONTAINER));
     if (oauthButtonsShown) {
       if (configuredOauths.length > 0) {
-        remove(hr);
-        remove(oauthPretext);
-        remove(oauthButtonsContainer);
+        remove($(ID_LOGIN_BOX_HR1));
+        remove($(ID_LOGIN_BOX_HR2));
+        remove($(ID_LOGIN_BOX_OAUTH_PRETEXT));
+        remove($(ID_LOGIN_BOX_OAUTH_BUTTONS_CONTAINER));
       }
     }
 
@@ -1623,6 +1902,8 @@
         if (ID_ROOT === undefined) {
           ID_ROOT = "commento";
         }
+
+        noFonts = attrGet(scripts[i], "data-no-fonts");
       }
     }
   }
@@ -1657,6 +1938,9 @@
     }
 
     classAdd(root, "root");
+    if (noFonts !== "true") {
+      classAdd(root, "root-font");
+    }
 
     loginBoxCreate();
 
@@ -1671,10 +1955,15 @@
         modToolsCreate();
         rootCreate(function() {
           commentsRender();
+<<<<<<< HEAD
           attrSet(root, "style", "");
           nameWidthFix();
+=======
+          append(root, footer);
+>>>>>>> f37e26bfc291dbeceb2aabc3b20e83c01e31fcd8
           loadHash();
           global.allShow();
+          nameWidthFix();
           call(callback);
         });
       });

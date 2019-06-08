@@ -4,29 +4,33 @@ import (
 	"net/http"
 )
 
-func commentDelete(commentHex string) error {
+func commentEdit(commentHex string, markdown string) (string, error) {
 	if commentHex == "" {
-		return errorMissingField
+		return "", errorMissingField
 	}
 
+	html := markdownToHtml(markdown)
+
 	statement := `
-		DELETE FROM comments
+		UPDATE comments
+		SET markdown = $2, html = $3
 		WHERE commentHex=$1;
 	`
-	_, err := db.Exec(statement, commentHex)
+	_, err := db.Exec(statement, commentHex, markdown, html)
 
 	if err != nil {
 		// TODO: make sure this is the error is actually non-existant commentHex
-		return errorNoSuchComment
+		return "", errorNoSuchComment
 	}
 
-	return nil
+	return html, nil
 }
 
-func commentDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func commentEditHandler(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		CommenterToken *string `json:"commenterToken"`
 		CommentHex     *string `json:"commentHex"`
+		Markdown       *string `json:"markdown"`
 	}
 
 	var x request
@@ -47,27 +51,16 @@ func commentDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	domain, _, err := commentDomainPathGet(*x.CommentHex)
+	if cm.CommenterHex != c.CommenterHex {
+		bodyMarshal(w, response{"success": false, "message": errorNotAuthorised.Error()})
+		return
+	}
+
+	html, err := commentEdit(*x.CommentHex, *x.Markdown)
 	if err != nil {
 		bodyMarshal(w, response{"success": false, "message": err.Error()})
 		return
 	}
 
-	isModerator, err := isDomainModerator(domain, c.Email)
-	if err != nil {
-		bodyMarshal(w, response{"success": false, "message": err.Error()})
-		return
-	}
-
-	if !isModerator && cm.CommenterHex != c.CommenterHex {
-		bodyMarshal(w, response{"success": false, "message": errorNotModerator.Error()})
-		return
-	}
-
-	if err = commentDelete(*x.CommentHex); err != nil {
-		bodyMarshal(w, response{"success": false, "message": err.Error()})
-		return
-	}
-
-	bodyMarshal(w, response{"success": true})
+	bodyMarshal(w, response{"success": true, "html": html})
 }

@@ -36,6 +36,7 @@ func fileDetemplate(f string) ([]byte, error) {
 	x = strings.Replace(x, "[[[.Origin]]]", os.Getenv("ORIGIN"), -1)
 	x = strings.Replace(x, "[[[.CdnPrefix]]]", os.Getenv("CDN_PREFIX"), -1)
 	x = strings.Replace(x, "[[[.Footer]]]", footer, -1)
+	x = strings.Replace(x, "[[[.Version]]]", version, -1)
 
 	return []byte(x), nil
 }
@@ -96,7 +97,7 @@ func staticRouterInit(router *mux.Router) error {
 	pages := []string{
 		"/login",
 		"/forgot",
-		"/reset-password",
+		"/reset",
 		"/signup",
 		"/confirm-email",
 		"/unsubscribe",

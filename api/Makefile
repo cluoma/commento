@@ -25,15 +25,15 @@ clean:
 # later down the line).
 
 devel-go:
-	dep ensure
-	go build -i -v -o $(GO_DEVEL_BUILD_BINARY)
+	GO111MODULE=on go mod vendor
+	GO111MODULE=on go build -mod=vendor -v -o $(GO_DEVEL_BUILD_BINARY)
 
 prod-go:
-	dep ensure
-	go build -i -v -o $(GO_PROD_BUILD_BINARY)
+	GO111MODULE=on go mod vendor
+	GO111MODULE=on go build -mod=vendor -v -o $(GO_PROD_BUILD_BINARY)
 
 test-go:
-	dep ensure
+	GO111MODULE=on go mod vendor
 	go test -v .
 
 $(shell mkdir -p $(GO_DEVEL_BUILD_DIR) $(GO_PROD_BUILD_DIR))

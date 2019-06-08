@@ -8,13 +8,12 @@ func apiRouterInit(router *mux.Router) error {
 	router.HandleFunc("/api/owner/new", ownerNewHandler).Methods("POST")
 	router.HandleFunc("/api/owner/confirm-hex", ownerConfirmHexHandler).Methods("GET")
 	router.HandleFunc("/api/owner/login", ownerLoginHandler).Methods("POST")
-	router.HandleFunc("/api/owner/send-reset-hex", ownerSendResetHexHandler).Methods("POST")
-	router.HandleFunc("/api/owner/reset-password", ownerResetPasswordHandler).Methods("POST")
 	router.HandleFunc("/api/owner/self", ownerSelfHandler).Methods("POST")
 
 	router.HandleFunc("/api/domain/new", domainNewHandler).Methods("POST")
 	router.HandleFunc("/api/domain/delete", domainDeleteHandler).Methods("POST")
 	router.HandleFunc("/api/domain/clear", domainClearHandler).Methods("POST")
+	router.HandleFunc("/api/domain/sso/new", domainSsoSecretNewHandler).Methods("POST")
 	router.HandleFunc("/api/domain/list", domainListHandler).Methods("POST")
 	router.HandleFunc("/api/domain/update", domainUpdateHandler).Methods("POST")
 	router.HandleFunc("/api/domain/moderator/new", domainModeratorNewHandler).Methods("POST")
@@ -29,6 +28,9 @@ func apiRouterInit(router *mux.Router) error {
 	router.HandleFunc("/api/commenter/login", commenterLoginHandler).Methods("POST")
 	router.HandleFunc("/api/commenter/self", commenterSelfHandler).Methods("POST")
 	router.HandleFunc("/api/commenter/photo", commenterPhotoHandler).Methods("GET")
+
+	router.HandleFunc("/api/forgot", forgotHandler).Methods("POST")
+	router.HandleFunc("/api/reset", resetHandler).Methods("POST")
 
 	router.HandleFunc("/api/email/get", emailGetHandler).Methods("POST")
 	router.HandleFunc("/api/email/update", emailUpdateHandler).Methods("POST")
@@ -46,7 +48,11 @@ func apiRouterInit(router *mux.Router) error {
 	router.HandleFunc("/api/oauth/gitlab/redirect", gitlabRedirectHandler).Methods("GET")
 	router.HandleFunc("/api/oauth/gitlab/callback", gitlabCallbackHandler).Methods("GET")
 
+	router.HandleFunc("/api/oauth/sso/redirect", ssoRedirectHandler).Methods("GET")
+	router.HandleFunc("/api/oauth/sso/callback", ssoCallbackHandler).Methods("GET")
+
 	router.HandleFunc("/api/comment/new", commentNewHandler).Methods("POST")
+	router.HandleFunc("/api/comment/edit", commentEditHandler).Methods("POST")
 	router.HandleFunc("/api/comment/list", commentListHandler).Methods("POST")
 	router.HandleFunc("/api/comment/count", commentCountHandler).Methods("POST")
 	router.HandleFunc("/api/comment/vote", commentVoteHandler).Methods("POST")
