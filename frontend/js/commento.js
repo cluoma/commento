@@ -58,12 +58,8 @@
   var ID_CONTENTS = "commento-comment-contents-";
   var ID_NAME = "commento-comment-name-";
   var ID_SUBMIT_BUTTON = "commento-submit-button-";
-<<<<<<< HEAD
-=======
   var ID_MARKDOWN_BUTTON = "commento-markdown-button-";
   var ID_MARKDOWN_HELP = "commento-markdown-help-";
-  var ID_FOOTER = "commento-footer";
->>>>>>> f37e26bfc291dbeceb2aabc3b20e83c01e31fcd8
 
 
   var origin = "[[[.Origin]]]";
@@ -1955,12 +1951,6 @@
         modToolsCreate();
         rootCreate(function() {
           commentsRender();
-<<<<<<< HEAD
-          attrSet(root, "style", "");
-          nameWidthFix();
-=======
-          append(root, footer);
->>>>>>> f37e26bfc291dbeceb2aabc3b20e83c01e31fcd8
           loadHash();
           global.allShow();
           nameWidthFix();

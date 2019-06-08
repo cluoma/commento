@@ -2,15 +2,7 @@
 
 ##### [Homepage](https://commento.io) &nbsp;&ndash;&nbsp; [Demo](https://demo.commento.io) &nbsp;&ndash;&nbsp; [Documentation](https://docs.commento.io) &nbsp;&ndash;&nbsp; [Contributing](https://docs.commento.io/contributing/) &nbsp;&ndash;&nbsp; [#commento on Freenode](http://webchat.freenode.net/?channels=%23commento)
 
-<<<<<<< HEAD
-<table align="center"><tr><td>
-<p align="center">:warning: &nbsp; <b>This is a mirror. All development takes place <a href="https://gitlab.com/commento/commento">on Gitlab</a>.</b></p>
-<div>You're viewing the Github mirror of the <code>master</code> branch. All development and discussion takes place on <a href="https://gitlab.com/commento/commento">on Gitlab</a>, not on Github. Please submit all issues and patches over there.</div></td></tr></table>
-
-### What is Commento?
-=======
 Commento is a platform that you can embed in your website to allow your readers to add comments. It's reasonably fast lightweight. Supports markdown, import from Disqus, voting, automated spam detection, moderation tools, sticky comments, thread locking, OAuth login, single sign-on, and email notifications.
->>>>>>> f37e26bfc291dbeceb2aabc3b20e83c01e31fcd8
 
 ###### How is this different from Disqus, Facebook Comments, and the rest?
 
