@@ -84,12 +84,10 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		email = user["email"].(string)
 	}
 
-	if user["name"] == nil {
-		fmt.Fprintf(w, "Error: no name returned by Github")
-		return
+	name := user["login"].(string)
+	if user["name"] != nil {
+		name = user["name"].(string)
 	}
-
-	name := user["name"].(string)
 
 	link := "undefined"
 	if user["html_url"] != nil {
@@ -109,7 +107,6 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	var commenterHex string
 
-	// TODO: in case of returning users, update the information we have on record?
 	if err == errorNoSuchCommenter {
 		commenterHex, err = commenterNew(email, name, link, photo, "github", "")
 		if err != nil {
@@ -117,6 +114,11 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		if err = commenterUpdate(c.CommenterHex, email, name, link, photo, "github"); err != nil {
+			logger.Warningf("cannot update commenter: %s", err)
+			// not a serious enough to exit with an error
+		}
+
 		commenterHex = c.CommenterHex
 	}
 

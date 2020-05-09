@@ -1,23 +1,10 @@
 stages:
-  - check-dco
   - go-fmt
   - go-test
   - build-src
-  - aws-upload-tags
   - build-docker
   - docker-registry-master
   - docker-registry-tags
-
-check-dco:
-  stage: check-dco
-  image: debian:buster
-  except:
-    - master
-    - tags
-  script:
-    - apt update
-    - apt install -y curl git jq
-    - bash ./scripts/check-dco
 
 build-src:
   stage: build-src
@@ -34,25 +21,6 @@ build-src:
     - make devel
     - make prod
 
-aws-upload-tags:
-  stage: aws-upload-tags
-  image: debian:buster
-  environment: aws-upload-tags
-  variables:
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  only:
-    - tags
-  before_script:
-    - bash $CI_PROJECT_DIR/scripts/gitlab-ci-build-prescript
-  script:
-    - export GOPATH=/go
-    - export PATH=$PATH:/go/bin
-    - cd /go/src/$CI_PROJECT_NAME
-    - make prod
-    - cd build/prod && tar -zcvf /commento-linux-amd64-$(git describe --tags).tar.gz .
-    - aws s3 cp /commento-linux-amd64-$(git describe --tags).tar.gz s3://commento-release/
-
 build-docker:
   stage: build-docker
   image: docker:stable
@@ -66,9 +34,9 @@ build-docker:
 
 go-test:
   stage: go-test
-  image: golang:1.12
+  image: golang:1.14
   services:
-    - postgres:latest
+    - postgres:9.6
   variables:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
@@ -81,7 +49,6 @@ go-test:
     - mkdir -p /go/src /go/bin /go/pkg
     - export GOPATH=/go
     - export PATH=$PATH:/go/bin
-    - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
     - ln -s $CI_PROJECT_DIR /go/src/$CI_PROJECT_NAME
   script:
     - cd /go/src/$CI_PROJECT_NAME
@@ -89,7 +56,7 @@ go-test:
 
 go-fmt:
   stage: go-fmt
-  image: golang:1.10.2
+  image: golang:1.14
   except:
     - master
     - tags

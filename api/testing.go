@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/op/go-logging"
 	"os"
 	"testing"
+
+	"github.com/op/go-logging"
 )
 
 func failTestOnError(t *testing.T, err error) {
@@ -15,10 +16,10 @@ func failTestOnError(t *testing.T, err error) {
 
 func getPublicTables() ([]string, error) {
 	statement := `
-    SELECT tablename
-    FROM pg_tables
-    WHERE schemaname='public';
-  `
+		SELECT tablename
+		FROM pg_tables
+		WHERE schemaname='public';
+	`
 	rows, err := db.Query(statement)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cannot query public tables: %v", err)

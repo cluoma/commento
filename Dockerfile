@@ -1,16 +1,15 @@
 # backend build (api server)
-FROM golang:1.12-alpine AS api-build
-RUN apk add --no-cache --update bash make git curl
+FROM golang:1.14-alpine AS api-build
+RUN apk add --no-cache --update bash dep make git curl g++
 
 COPY ./api /go/src/commento/api/
 WORKDIR /go/src/commento/api
-ENV GO111MODULE=on
 RUN make prod -j$(($(nproc) + 1))
 
 
 # frontend build (html, js, css, images)
 FROM node:10-alpine AS frontend-build
-RUN apk add --no-cache --update bash make
+RUN apk add --no-cache --update bash make python2 g++
 
 COPY ./frontend /commento/frontend
 WORKDIR /commento/frontend/

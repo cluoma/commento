@@ -14,6 +14,7 @@
   <div id="navbar" class="navbar">
     <a href="[[[.Origin]]]/" class="navbar-item navbar-logo-text"><img src="[[[.CdnPrefix]]]/images/logo.svg" class="navbar-logo">Commento</a>
     <div class="navbar-item">
+      <a href="[[[.Origin]]]/settings" class="navbar-item">Settings</a>
       <a href="[[[.Origin]]]/logout" class="navbar-item">Logout</a>
       <div class="float-right"><b><div id="owner-name"></div></b></div>
     </div>
@@ -102,7 +103,7 @@
                   <br>
 
                   <div class="normal-text">
-                    Read the Commento documentation <a href="https://docs.commento.io/configuration/">on configuration</a>.
+                    Read the Commento documentation <a href="https://docs.commento.io/configuration/frontend/">on configuration</a>.
                   </div>
                 </div>
               </div>
@@ -200,6 +201,26 @@
                       <div class="row no-border commento-round-check">
                         <input type="radio" id="email-none" value="none" v-model="domains[cd].emailNotificationPolicy">
                         <label for="email-none">Do not email moderators</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="question">
+                    <div class="title">
+                      Comment Sorting
+                    </div>
+                    <div class="answer">
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-score-desc" value="score-desc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-score-desc">Most upvoted first</label>
+                      </div>
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-creationdate-desc" value="creationdate-desc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-creationdate-desc">Newest first</label>
+                      </div>
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-creationdate-asc" value="creationdate-asc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-creationdate-asc">Oldest first</label>
                       </div>
                     </div>
                   </div>
@@ -314,8 +335,28 @@
                         </div>
                       </div>
 
-                      <div class="warning" v-if="!domains[cd].allowAnonymous && !domains[cd].commentoProvider && !domains[cd].googleProvider && !domains[cd].twitterProvider && !domains[cd].githubProvider && !domains[cd].gitlabProvider">
+                      <div class="warning" v-if="!domains[cd].allowAnonymous && !domains[cd].commentoProvider && (!configuredOauths.google || !domains[cd].googleProvider) && (!configuredOauths.twitter || !domains[cd].twitterProvider) && (!configuredOauths.github || !domains[cd].githubProvider) && (!configuredOauths.gitlab || !domains[cd].gitlabProvider) && !domains[cd].ssoProvider">
                         You have disabled all authentication options. Your readers will not be able to login, create comments, or vote.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="question">
+                    <div class="title">
+                      Default Comment Sorting
+                    </div>
+                    <div class="answer">
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-score-desc" value="score-desc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-score-desc">Most upvoted first</label>
+                      </div>
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-creationdate-desc" value="creationdate-desc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-creationdate-desc">Newest first</label>
+                      </div>
+                      <div class="row no-border commento-round-check">
+                        <input type="radio" id="defaultSortPolicy-creationdate-asc" value="creationdate-asc" v-model="domains[cd].defaultSortPolicy">
+                        <label for="defaultSortPolicy-creationdate-asc">Oldest first</label>
                       </div>
                     </div>
                   </div>
@@ -349,10 +390,11 @@
             <div class="tabs-container">
               <div class="tab">
                 <ul class="tabs">
-                  <li class="tab-link original current" data-tab="install-tab-1">Disqus</li>
+                  <li class="tab-link original current" data-tab="import-tab-1">Disqus</li>
+                  <li class="tab-link" data-tab="import-tab-2">Commento</li>
                 </ul>
 
-                <div id="install-tab-1" class="content original current">
+                <div id="import-tab-1" class="content original current">
                   <div class="normal-text">
                     If you're currently using Disqus, you can import all comments into Commento:
                     <ul>
@@ -392,6 +434,41 @@
                     </ul>
                   </div>
                 </div>
+
+                <div id="import-tab-2" class="content">
+                  <div class="normal-text">
+                    If you've previously exported data from Commento you can restore it:
+                    <ul>
+                      <li>
+                        Upload your exported data file somewhere in the cloud and generate a direct link to it. Ensure that the export file is a GZIP archive of a JSON file.
+                      </li>
+
+                      <li>
+                        Copy and paste that link here to start the import process:
+
+                        <br><br>
+
+                        <div class="commento-email-container">
+                          <div class="commento-email">
+                            <input class="commento-input" type="text" id="commento-url" placeholder="https://example.com/commento.json.gz">
+                            <button id="commento-import-button" class="commento-email-button" onclick="window.commento.importCommento()">Import</button>
+                          </div>
+                        </div>
+
+                        <br>
+                      </li>
+
+                      <li>
+                        Commento will automatically download this file, extract it, parse it and import comments into Commento. URL information, comment authors, text formatting, and nested replies will be preserved.
+                      </li>
+                        
+                      <li>
+                        It is strongly recommended you do this only once. Importing multiple times may have unintended effects.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

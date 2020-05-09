@@ -30,6 +30,10 @@ func commentNew(commenterHex string, domain string, path string, parentHex strin
 
 	html := markdownToHtml(markdown)
 
+	if err = pageNew(domain, path); err != nil {
+		return "", err
+	}
+
 	statement := `
 		INSERT INTO
 		comments (commentHex, domain, path, commenterHex, parentHex, markdown, html, creationDate, state)
@@ -39,10 +43,6 @@ func commentNew(commenterHex string, domain string, path string, parentHex strin
 	if err != nil {
 		logger.Errorf("cannot insert comment: %v", err)
 		return "", errorInternal
-	}
-
-	if err = pageNew(domain, path); err != nil {
-		return "", err
 	}
 
 	return commentHex, nil
@@ -149,6 +149,6 @@ func commentNewHandler(w http.ResponseWriter, r *http.Request) {
 
 	bodyMarshal(w, response{"success": true, "commentHex": commentHex, "state": state, "html": html})
 	if smtpConfigured {
-		go emailNotificationNew(d, path, commenterHex, commentHex, *x.ParentHex, state)
+		go emailNotificationNew(d, path, commenterHex, commentHex, html, *x.ParentHex, state)
 	}
 }

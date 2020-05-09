@@ -15,9 +15,42 @@
     xmlDoc.send(JSON.stringify(data));
   }
 
+  var commentsText = function(count) {
+    return count + " " + (count === 1 ? "comment" : "comments")
+  }
+
+  function tags(tag) {
+    return document.getElementsByTagName(tag);
+  }
+
+  function attrGet(node, a) {
+    var attr = node.attributes[a];
+
+    if (attr === undefined) {
+      return undefined;
+    }
+    
+    return attr.value;
+  }
+
+
+  function dataTagsLoad() {
+    var scripts = tags("script")
+    for (var i = 0; i < scripts.length; i++) {
+      if (scripts[i].src.match(/\/js\/count\.js$/)) {
+        var customCommentsText = attrGet(scripts[i], "data-custom-text");
+        if (customCommentsText !== undefined) {
+          commentsText = eval(customCommentsText);
+        }
+      }
+    }
+  }
+
   function main() {
     var paths = [];
     var doms = [];
+    dataTagsLoad();
+
     var as = document.getElementsByTagName("a");
     for (var i = 0; i < as.length; i++) {
       var href = as[i].href;
@@ -28,12 +61,15 @@
       href = href.replace(/^.*\/\/[^\/]+/, "");
 
       if (href.endsWith("#commento")) {
-        var path = href.substr(0, href.indexOf("#commento"));
-        if (path.startsWith(parent.location.host)) {
-          path = path.substr(parent.location.host.length);
+        var pageId = attrGet(as[i], "data-page-id");
+        if (pageId === undefined) {
+          pageId = href.substr(0, href.indexOf("#commento"));
+          if (pageId.startsWith(parent.location.host)) {
+            pageId = pageId.substr(parent.location.host.length);
+          }
         }
 
-        paths.push(path);
+        paths.push(pageId);
         doms.push(as[i]);
       }
     }
@@ -55,7 +91,7 @@
           count = resp.commentCounts[paths[i]];
         }
 
-        doms[i].innerText = count + " " + (count === 1 ? "comment" : "comments");
+        doms[i].innerText = commentsText(count);
       }
     });
   }

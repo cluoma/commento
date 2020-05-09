@@ -56,10 +56,10 @@ func ownerNew(email string, name string, password string) (string, error) {
 		}
 
 		statement = `
-      INSERT INTO
-      ownerConfirmHexes (confirmHex, ownerHex, sendDate)
-      VALUES            ($1,         $2,       $3      );
-    `
+			INSERT INTO
+			ownerConfirmHexes (confirmHex, ownerHex, sendDate)
+			VALUES            ($1,         $2,       $3      );
+		`
 		_, err = db.Exec(statement, confirmHex, ownerHex, time.Now().UTC())
 		if err != nil {
 			logger.Errorf("cannot insert confirmHex: %v\n", err)
@@ -92,10 +92,8 @@ func ownerNewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := commenterNew(*x.Email, *x.Name, "undefined", "undefined", "commento", *x.Password); err != nil {
-		bodyMarshal(w, response{"success": false, "message": err.Error()})
-		return
-	}
+	// Errors in creating a commenter account should not hold this up.
+	_, _ = commenterNew(*x.Email, *x.Name, "undefined", "undefined", "commento", *x.Password)
 
 	bodyMarshal(w, response{"success": true, "confirmEmail": smtpConfigured})
 }

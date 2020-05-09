@@ -34,11 +34,13 @@
   var ID_MOD_TOOLS_LOCK_BUTTON = "commento-mod-tools-lock-button";
   var ID_ERROR = "commento-error";
   var ID_LOGGED_CONTAINER = "commento-logged-container";
+  var ID_PRE_COMMENTS_AREA = "commento-pre-comments-area";
   var ID_COMMENTS_AREA = "commento-comments-area";
   var ID_SUPER_CONTAINER = "commento-textarea-super-container-";
   var ID_TEXTAREA_CONTAINER = "commento-textarea-container-";
   var ID_TEXTAREA = "commento-textarea-";
   var ID_ANONYMOUS_CHECKBOX = "commento-anonymous-checkbox-";
+  var ID_SORT_POLICY = "commento-sort-policy-";
   var ID_CARD = "commento-comment-card-";
   var ID_BODY = "commento-comment-body-";
   var ID_TEXT = "commento-comment-text-";
@@ -65,8 +67,10 @@
   var origin = "[[[.Origin]]]";
   var cdn = "[[[.CdnPrefix]]]";
   var root = null;
+  var pageId = parent.location.pathname;
   var cssOverride;
   var noFonts;
+  var hideDeleted;
   var autoInit;
   var isAuthenticated = false;
   var comments = [];
@@ -81,8 +85,10 @@
   var shownReply = {};
   var shownEdit = {};
   var configuredOauths = {};
+  var anonymousOnly = false;
   var popupBoxType = "login";
   var oauthButtonsShown = false;
+  var sortPolicy = "score-desc";
   var selfHex = undefined;
   var mobileView = null;
 
@@ -167,6 +173,13 @@
   }
 
 
+  function onload(node, f, arg) {
+    node.addEventListener("load", function() {
+      f(arg);
+    });
+  }
+
+
   function attrSet(node, a, value) {
     node.setAttribute(a, value);
   }
@@ -241,7 +254,18 @@
     refreshAll();
   }
 
-  function selfLoad(commenter) {
+
+  function profileEdit() {
+    window.open(origin + "/profile?commenterToken=" + commenterTokenGet(), "_blank");
+  }
+
+
+  function notificationSettings(unsubscribeSecretHex) {
+    window.open(origin + "/unsubscribe?unsubscribeSecretHex=" + unsubscribeSecretHex, "_blank");
+  }
+
+
+  function selfLoad(commenter, email) {
     commenters[commenter.commenterHex] = commenter;
     selfHex = commenter.commenterHex;
 
@@ -254,7 +278,9 @@
       name = create("div");
     }
     var avatar;
-    var logout = create("div");
+    var notificationSettingsButton = create("div");
+    var profileEditButton = create("div");
+    var logoutButton = create("div");
     var color = colorGet(commenter.commenterHex + "-" + commenter.name);
 
     loggedContainer.id = ID_LOGGED_CONTAINER;
@@ -262,12 +288,18 @@
     classAdd(loggedContainer, "logged-container");
     classAdd(loggedInAs, "logged-in-as");
     classAdd(name, "name");
-    classAdd(logout, "logout");
+    classAdd(notificationSettingsButton, "profile-button");
+    classAdd(profileEditButton, "profile-button");
+    classAdd(logoutButton, "profile-button");
 
     name.innerText = commenter.name;
-    logout.innerText = "Logout";
+    notificationSettingsButton.innerText = "Notification Settings";
+    profileEditButton.innerText = "Edit Profile";
+    logoutButton.innerText = "Logout";
 
-    onclick(logout, global.logout);
+    onclick(logoutButton, global.logout);
+    onclick(notificationSettingsButton, notificationSettings, email.unsubscribeSecretHex);
+    onclick(profileEditButton, profileEdit);
 
     attrSet(loggedContainer, "style", "display: none");
     if (commenter.link !== "undefined") {
@@ -287,7 +319,11 @@
     append(loggedInAs, avatar);
     append(loggedInAs, name);
     append(loggedContainer, loggedInAs);
-    append(loggedContainer, logout);
+    append(loggedContainer, logoutButton);
+    if (commenter.provider === "commento") {
+      append(loggedContainer, profileEditButton);
+    }
+    append(loggedContainer, notificationSettingsButton);
     prepend(root, loggedContainer);
 
     isAuthenticated = true;
@@ -313,22 +349,22 @@
         return;
       }
 
-      selfLoad(resp.commenter);
-      global.allShow();
+      selfLoad(resp.commenter, resp.email);
+      allShow();
 
       call(callback);
     });
   }
 
 
-  function cssLoad(file, onload) {
+  function cssLoad(file, f) {
     var link = create("link");
     var head = document.getElementsByTagName("head")[0];
 
     link.type = "text/css";
     attrSet(link, "href", file);
     attrSet(link, "rel", "stylesheet");
-    attrSet(link, "onload", onload);
+    onload(link, f);
 
     append(head, link);
   }
@@ -338,7 +374,7 @@
     var json = {
       "commenterToken": commenterTokenGet(),
       "domain": parent.location.host,
-      "path": parent.location.pathname,
+      "path": pageId,
     };
 
     post(origin + "/api/comment/list", json, function(resp) {
@@ -359,6 +395,8 @@
       comments = resp.comments;
       commenters = Object.assign({}, commenters, resp.commenters)
       configuredOauths = resp.configuredOauths;
+
+      sortPolicy = resp.defaultSortPolicy;
 
       call(callback);
     });
@@ -514,6 +552,11 @@
     }
     markdownButton.innerHTML = "<b>M &#8595;</b> &nbsp; Markdown";
 
+    if (anonymousOnly) {
+      anonymousCheckbox.checked = true;
+      anonymousCheckbox.setAttribute("disabled", true);
+    }
+
     textarea.oninput = autoExpander(textarea);
     if (edit === true) {
       onclick(submitButton, commentEdit, id);
@@ -536,13 +579,62 @@
   }
 
 
+  var sortPolicyNames = {
+    "score-desc": "Upvotes",
+    "creationdate-desc": "Newest",
+    "creationdate-asc": "Oldest",
+  };
+
+
+  function sortPolicyApply(policy) {
+    classRemove($(ID_SORT_POLICY + sortPolicy), "sort-policy-button-selected");
+
+    var commentsArea = $(ID_COMMENTS_AREA);
+    commentsArea.innerHTML = "";
+    sortPolicy = policy;
+    var cards = commentsRecurse(parentMap(comments), "root");
+    if (cards) {
+      append(commentsArea, cards);
+    }
+
+    classAdd($(ID_SORT_POLICY + policy), "sort-policy-button-selected");
+  }
+
+
+  function sortPolicyBox() {
+    var sortPolicyButtonsContainer = create("div");
+    var sortPolicyButtons = create("div");
+
+    classAdd(sortPolicyButtonsContainer, "sort-policy-buttons-container");
+    classAdd(sortPolicyButtons, "sort-policy-buttons");
+
+    for (var sp in sortPolicyNames) {
+      var sortPolicyButton = create("a");
+      sortPolicyButton.id = ID_SORT_POLICY + sp;
+      classAdd(sortPolicyButton, "sort-policy-button");
+      if (sp === sortPolicy) {
+        classAdd(sortPolicyButton, "sort-policy-button-selected");
+      }
+      sortPolicyButton.innerText = sortPolicyNames[sp];
+      onclick(sortPolicyButton, sortPolicyApply, sp);
+      append(sortPolicyButtons, sortPolicyButton)
+    }
+
+    append(sortPolicyButtonsContainer, sortPolicyButtons);
+
+    return sortPolicyButtonsContainer
+  }
+
+
   function rootCreate(callback) {
     var login = create("div");
     var loginText = create("div");
     var mainArea = $(ID_MAIN_AREA);
+    var preCommentsArea = create("div");
     var commentsArea = create("div");
 
     login.id = ID_LOGIN;
+    preCommentsArea.id = ID_PRE_COMMENTS_AREA;
     commentsArea.id = ID_COMMENTS_AREA;
 
     classAdd(login, "login");
@@ -554,7 +646,17 @@
 
     onclick(loginText, global.loginBoxShow, null);
 
-    append(login, loginText);
+    var numOauthConfigured = 0;
+    Object.keys(configuredOauths).forEach(function(key) {
+      if (configuredOauths[key]) {
+        numOauthConfigured++;
+      }
+    });
+    if (numOauthConfigured > 0) {
+      append(login, loginText);
+    } else if (!requireIdentification) {
+      anonymousOnly = true;
+    }
 
     if (isLocked || isFrozen) {
       if (isAuthenticated || chosenAnonymous) {
@@ -572,6 +674,12 @@
       }
       append(mainArea, textareaCreate("root"));
     }
+
+    if (comments.length > 0) {
+      append(mainArea, sortPolicyBox());
+    }
+
+    append(mainArea, preCommentsArea);
 
     append(mainArea, commentsArea);
     append(root, mainArea);
@@ -608,7 +716,7 @@
     var json = {
       "commenterToken": commenterToken,
       "domain": parent.location.host,
-      "path": parent.location.pathname,
+      "path": pageId,
       "parentHex": id,
       "markdown": markdown,
     };
@@ -637,19 +745,23 @@
         commenterHex = "anonymous";
       }
 
+      var comment = {
+        "commentHex": resp.commentHex,
+        "commenterHex": commenterHex,
+        "markdown": markdown,
+        "html": resp.html,
+        "parentHex": "root",
+        "score": 0,
+        "state": "approved",
+        "direction": 0,
+        "creationDate": new Date(),
+      };
+
       var newCard = commentsRecurse({
-        "root": [{
-          "commentHex": resp.commentHex,
-          "commenterHex": commenterHex,
-          "markdown": markdown,
-          "html": resp.html,
-          "parentHex": "root",
-          "score": 0,
-          "state": "approved",
-          "direction": 0,
-          "creationDate": new Date(),
-        }],
-      }, "root")
+        "root": [comment]
+      }, "root");
+
+      commentsMap[resp.commentHex] = comment;
 
       if (id !== "root") {
         textareaSuperContainer.replaceWith(newCard);
@@ -664,7 +776,7 @@
         onclick(replyButton, global.replyShow, id)
       } else {
         textarea.value = "";
-        insertAfter(textareaSuperContainer, newCard);
+        insertAfter($(ID_PRE_COMMENTS_AREA), newCard);
       }
 
       call(callback);
@@ -694,26 +806,35 @@
 
 
   function timeDifference(current, previous) { // thanks stackoverflow
-    var msJustNow = 5000;
-    var msPerMinute = 60000;
-    var msPerHour = 3600000;
-    var msPerDay = 86400000;
-    var msPerMonth = 2592000000;
-    var msPerYear = 946080000000;
+    // Times are defined in milliseconds
+    var msPerSecond = 1000;
+    var msPerMinute = 60 * msPerSecond;
+    var msPerHour = 60 * msPerMinute;
+    var msPerDay = 24 * msPerHour;
+    var msPerMonth = 30 * msPerDay;
+    var msPerYear = 12 * msPerMonth;
+
+    // Time ago thresholds
+    var msJustNow = 5 * msPerSecond; // Up until 5 s
+    var msMinutesAgo = 2 * msPerMinute; // Up until 2 minutes
+    var msHoursAgo = 2 * msPerHour; // Up until 2 hours
+    var msDaysAgo = 2 * msPerDay; // Up until 2 days
+    var msMonthsAgo = 2 * msPerMonth; // Up until 2 months
+    var msYearsAgo = 2 * msPerYear; // Up until 2 years
 
     var elapsed = current - previous;
 
     if (elapsed < msJustNow) {
       return "just now";
-    } else if (elapsed < msPerMinute) {
-      return Math.round(elapsed / 1000) + " seconds ago";
-    } else if (elapsed < msPerHour) {
+    } else if (elapsed < msMinutesAgo) {
+      return Math.round(elapsed / msPerSecond) + " seconds ago";
+    } else if (elapsed < msHoursAgo) {
       return Math.round(elapsed / msPerMinute) + " minutes ago";
-    } else if (elapsed < msPerDay ) {
+    } else if (elapsed < msDaysAgo ) {
       return Math.round(elapsed / msPerHour ) + " hours ago";
-    } else if (elapsed < msPerMonth) {
+    } else if (elapsed < msMonthsAgo) {
       return Math.round(elapsed / msPerDay) + " days ago";
-    } else if (elapsed < msPerYear) {
+    } else if (elapsed < msYearsAgo) {
       return Math.round(elapsed / msPerMonth) + " months ago";
     } else {
       return Math.round(elapsed / msPerYear ) + " years ago";
@@ -730,6 +851,27 @@
   }
 
 
+  var sortPolicyFunctions = {
+    "score-desc": function(a, b) {
+      return b.score - a.score;
+    },
+    "creationdate-desc": function(a, b) {
+      if (a.creationDate < b.creationDate) {
+        return 1;
+      } else {
+        return -1;
+      }
+    },
+    "creationdate-asc": function(a, b) {
+      if (a.creationDate < b.creationDate) {
+        return -1;
+      } else {
+        return 1;
+      }
+    },
+  };
+
+
   function commentsRecurse(parentMap, parentHex) {
     var cur = parentMap[parentHex];
     if (!cur || !cur.length) {
@@ -737,21 +879,13 @@
     }
 
     cur.sort(function(a, b) {
-      if (a.commentHex === stickyCommentHex) {
+      if (!a.deleted && a.commentHex === stickyCommentHex) {
         return -Infinity;
-      } else if (b.commentHex === stickyCommentHex) {
+      } else if (!b.deleted && b.commentHex === stickyCommentHex) {
         return Infinity;
       }
 
-      if (a.score !== b.score) {
-        return b.score - a.score;
-      }
-
-      if (a.creationDate < b.creationDate) {
-        return -1;
-      } else {
-        return 1;
-      }
+      return sortPolicyFunctions[sortPolicy](a, b);
     });
 
     var curTime = (new Date()).getTime();
@@ -825,7 +959,11 @@
       timeago.title = comment.creationDate.toString();
 
       card.style["borderLeft"] = "2px solid " + color;
-      name.innerText = commenter.name;
+      if (comment.deleted) {
+        name.innerText = "[deleted]";
+      } else {
+        name.innerText = commenter.name;
+      }
       text.innerHTML = comment.html;
       timeago.innerHTML = timeDifference(curTime, comment.creationDate);
       score.innerText = scorify(comment.score);
@@ -920,20 +1058,22 @@
 
       append(options, collapse);
 
-      append(options, downvote);
-      append(options, upvote);
+      if (!comment.deleted) {
+        append(options, downvote);
+        append(options, upvote);
+      }
 
       if (comment.commenterHex === selfHex) {
         append(options, edit);
-      } else {
+      } else if (!comment.deleted) {
         append(options, reply);
       }
 
-      if (isModerator && parentHex === "root") {
+      if (!comment.deleted && (isModerator && parentHex === "root")) {
         append(options, sticky);
       }
 
-      if (isModerator || comment.commenterHex === selfHex) {
+      if (!comment.deleted && (isModerator || comment.commenterHex === selfHex)) {
         append(options, remove);
       }
 
@@ -941,7 +1081,7 @@
         append(options, approve);
       }
       
-      if (!isModerator && stickyCommentHex === comment.commentHex) {
+      if (!comment.deleted && (!isModerator && stickyCommentHex === comment.commentHex)) {
         append(options, sticky);
       }
 
@@ -975,8 +1115,17 @@
 
       append(card, header);
       append(card, contents);
+
+      if (comment.deleted && (hideDeleted === "true" || children === null)) {
+        return;
+      }
+
       append(cards, card);
     });
+
+    if (cards.childNodes.length === 0) {
+      return null;
+    }
 
     return cards;
   }
@@ -1008,6 +1157,10 @@
 
 
   global.commentDelete = function(commentHex) {
+    if (!confirm("Are you sure you want to delete this comment?")) {
+      return;
+    }
+
     var json = {
       "commenterToken": commenterTokenGet(),
       "commentHex": commentHex,
@@ -1021,8 +1174,8 @@
         errorHide();
       }
 
-      var card = $(ID_CARD + commentHex);
-      remove(card);
+      var text = $(ID_TEXT + commentHex);
+      text.innerText = "[deleted]";
     });
   }
 
@@ -1167,7 +1320,7 @@
     text.replaceWith(textareaCreate(id, true));
 
     var textarea = $(ID_TEXTAREA + id);
-    textarea.innerText = commentsMap[id].markdown;
+    textarea.value = commentsMap[id].markdown;
 
     var editButton = $(ID_EDIT + id);
 
@@ -1273,28 +1426,32 @@
   }
 
 
-  function commentsRender() {
-    var parentMap = {};
-    var parentHex;
-
-    var commentsArea = $(ID_COMMENTS_AREA);
-
+  function parentMap(comments) {
+    var m = {};
     comments.forEach(function(comment) {
-      parentHex = comment.parentHex;
-      if (!(parentHex in parentMap)) {
-        parentMap[parentHex] = [];
+      var parentHex = comment.parentHex;
+      if (!(parentHex in m)) {
+        m[parentHex] = [];
       }
 
       comment.creationDate = new Date(comment.creationDate);
 
-      parentMap[parentHex].push(comment);
+      m[parentHex].push(comment);
       commentsMap[comment.commentHex] = {
         "html": comment.html,
         "markdown": comment.markdown,
       };
     });
 
-    var cards = commentsRecurse(parentMap, "root");
+    return m;
+  }
+
+
+  function commentsRender() {
+    var commentsArea = $(ID_COMMENTS_AREA);
+    commentsArea.innerHTML = ""
+
+    var cards = commentsRecurse(parentMap(comments), "root");
     if (cards) {
       append(commentsArea, cards);
     }
@@ -1345,6 +1502,7 @@
   }
 
 
+  // OAuth logic
   global.commentoAuth = function(data) {
     var provider = data.provider;
     var id = data.id;
@@ -1378,9 +1536,11 @@
             if (id !== null) {
               global.commentNew(id, resp.commenterToken, function() {
                 global.loginBoxClose();
+                commentsGet(commentsRender);
               });
             } else {
               global.loginBoxClose();
+              commentsGet(commentsRender);
             }
           });
         }
@@ -1602,16 +1762,18 @@
 
       cookieSet("commentoCommenterToken", resp.commenterToken);
 
-      selfLoad(resp.commenter);
-      global.allShow();
+      selfLoad(resp.commenter, resp.email);
+      allShow();
 
       remove($(ID_LOGIN));
       if (id !== null) {
         global.commentNew(id, resp.commenterToken, function() {
           global.loginBoxClose();
+          commentsGet(commentsRender);
         });
       } else {
         global.loginBoxClose();
+        commentsGet(commentsRender);
       }
     });
   }
@@ -1740,7 +1902,7 @@
     var json = {
       "commenterToken": commenterTokenGet(),
       "domain": parent.location.host,
-      "path": parent.location.pathname,
+      "path": pageId,
       "attributes": attributes,
     };
 
@@ -1833,16 +1995,16 @@
   }
 
 
-  global.loadCssOverride = function() {
+  function loadCssOverride() {
     if (cssOverride === undefined) {
-      global.allShow();
+      allShow();
     } else {
-      cssLoad(cssOverride, "window.commento.allShow()");
+      cssLoad(cssOverride, allShow);
     }
   }
 
 
-  global.allShow = function() {
+  function allShow() {
     var mainArea = $(ID_MAIN_AREA);
     var modTools = $(ID_MOD_TOOLS);
     var loggedContainer = $(ID_LOGGED_CONTAINER);
@@ -1890,6 +2052,11 @@
     var scripts = tags("script")
     for (var i = 0; i < scripts.length; i++) {
       if (scripts[i].src.match(/\/js\/commento\.js$/)) {
+        var pid = attrGet(scripts[i], "data-page-id");
+        if (pid !== undefined) {
+          pageId = pid;
+        }
+
         cssOverride = attrGet(scripts[i], "data-css-override");
 
         autoInit = attrGet(scripts[i], "data-auto-init");
@@ -1900,6 +2067,8 @@
         }
 
         noFonts = attrGet(scripts[i], "data-no-fonts");
+
+        hideDeleted = attrGet(scripts[i], "data-hide-deleted");
       }
     }
   }
@@ -1944,7 +2113,7 @@
 
     mainAreaCreate();
 
-    cssLoad(cdn + "/css/commento.css", "window.commento.loadCssOverride()");
+    cssLoad(cdn + "/css/commento.css", loadCssOverride);
 
     selfGet(function() {
       commentsGet(function() {
@@ -1952,7 +2121,7 @@
         rootCreate(function() {
           commentsRender();
           loadHash();
-          global.allShow();
+          allShow();
           nameWidthFix();
           call(callback);
         });

@@ -56,6 +56,13 @@ func configParse() error {
 
 		"GITLAB_KEY":    "",
 		"GITLAB_SECRET": "",
+		"GITLAB_URL":    "https://gitlab.com",
+	}
+
+	if os.Getenv("COMMENTO_CONFIG_FILE") != "" {
+		if err := configFileLoad(os.Getenv("COMMENTO_CONFIG_FILE")); err != nil {
+			return err
+		}
 	}
 
 	for key, value := range defaults {
@@ -63,12 +70,6 @@ func configParse() error {
 			os.Setenv(key, value)
 		} else {
 			os.Setenv(key, os.Getenv("COMMENTO_"+key))
-		}
-	}
-
-	if os.Getenv("CONFIG_FILE") != "" {
-		if err := configFileLoad(os.Getenv("CONFIG_FILE")); err != nil {
-			return err
 		}
 	}
 
